@@ -22,19 +22,19 @@ from reportlab.pdfgen import canvas
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # Insert folder paths for modules
-sys.path.insert(0, dir_path + "/denaro")
-sys.path.insert(0, dir_path + "/denaro/wallet")
-sys.path.insert(0, dir_path + "/denaro/wallet/utils")
+sys.path.insert(0, dir_path + "/stellaris")
+sys.path.insert(0, dir_path + "/stellaris/wallet")
+sys.path.insert(0, dir_path + "/stellaris/wallet/utils")
 
-from denaro.wallet.utils.wallet_generation_util import generate, generate_from_private_key, generate_mnemonic, string_to_point, sha256, is_valid_mnemonic
-from denaro.wallet.utils.cryptographic_util import EncryptDecryptUtils, TOTP
-from denaro.wallet.utils.verification_util import Verification
-from denaro.wallet.utils.data_manipulation_util import DataManipulation
-from denaro.wallet.utils.interface_util import QRCodeUtils, UserPrompts
-from denaro.wallet.utils.transaction_utils.transaction_input import TransactionInput
-from denaro.wallet.utils.transaction_utils.transaction_output import TransactionOutput
-from denaro.wallet.utils.transaction_utils.transaction import Transaction
-from denaro.wallet.utils.paper_wallet_util import PaperWalletGenerator
+from stellaris.wallet.utils.wallet_generation_util import generate, generate_from_private_key, generate_mnemonic, string_to_point, sha256, is_valid_mnemonic
+from stellaris.wallet.utils.cryptographic_util import EncryptDecryptUtils, TOTP
+from stellaris.wallet.utils.verification_util import Verification
+from stellaris.wallet.utils.data_manipulation_util import DataManipulation
+from stellaris.wallet.utils.interface_util import QRCodeUtils, UserPrompts
+from stellaris.wallet.utils.transaction_utils.transaction_input import TransactionInput
+from stellaris.wallet.utils.transaction_utils.transaction_output import TransactionOutput
+from stellaris.wallet.utils.transaction_utils.transaction import Transaction
+from stellaris.wallet.utils.paper_wallet_util import PaperWalletGenerator
 
 is_windows = os.name == 'nt'
 
@@ -281,9 +281,9 @@ def handle_new_encrypted_wallet(password, totp_code, use2FA, filename, determini
         # Generate a secret for TOTP
         totp_secret = TOTP.generate_totp_secret(False,verification_salt)
 
-        totp_qr_data = f'otpauth://totp/{filename}?secret={totp_secret}&issuer=Denaro Wallet Client'
+        totp_qr_data = f'otpauth://totp/{filename}?secret={totp_secret}&issuer=stellaris Wallet Client'
         # Generate a QR code for the TOTP secret
-        qr_img = QRCodeUtils.generate_qr_with_logo(totp_qr_data, "./denaro/wallet/denaro_logo.png")
+        qr_img = QRCodeUtils.generate_qr_with_logo(totp_qr_data, "./stellaris/wallet/stellaris_logo.png")
         # Threading is used to show the QR window to the user while allowing input in the temrinal
         thread = threading.Thread(target=QRCodeUtils.show_qr_with_timer, args=(qr_img, filename, totp_secret,))
         thread.start()
@@ -1176,7 +1176,7 @@ def generatePaperWallet(filename, password, totp_code, address, private_key, fil
         ensure_wallet_directories_exist(custom=file_directory)
         
         if not os.path.exists("./wallets/paper_wallets/paper_wallet_back.png") and file_type.lower() == 'png':
-            shutil.copy("./denaro/wallet/paper_wallet_back.png", "wallets/paper_wallets")
+            shutil.copy("./stellaris/wallet/paper_wallet_back.png", "wallets/paper_wallets")
         
         if not private_key:
             wallet_name = os.path.splitext(os.path.basename(filename))[0]
@@ -1214,7 +1214,7 @@ def generatePaperWallet(filename, password, totp_code, address, private_key, fil
     
             # Save and scale the second image
             temp_back_path = file_path.replace('.pdf', '.temp_back.png')
-            second_image_path = "./denaro/wallet/paper_wallet_back.png"
+            second_image_path = "./stellaris/wallet/paper_wallet_back.png"
     
             with Image.open(second_image_path) as back_img:
                 back_image = process_image(back_img)
@@ -1243,7 +1243,7 @@ def generatePaperWallet(filename, password, totp_code, address, private_key, fil
 def validate_and_select_node(node):
     """
     Overview:
-        This function is responsible for ensuring that the address of a Denaro node is valid and usable for 
+        This function is responsible for ensuring that the address of a stellaris node is valid and usable for 
         interactions with the blockchain network. It first checks if a node address is provided. If so, it
         validates the address by calling the `validate_node_address` method. If no address is provided,
         it defaults to a pre-defined, reliable node address. This function is essential for ensuring that
@@ -1259,9 +1259,9 @@ def validate_and_select_node(node):
     if node:
         is_node_valid, node = Verification.validate_node_address(node)
         if not is_node_valid:
-            node = 'https://denaro-node.gaetano.eu.org'
+            node = 'https://stellaris-node.gaetano.eu.org'
     else:
-        node = 'https://denaro-node.gaetano.eu.org'
+        node = 'https://stellaris-node.gaetano.eu.org'
     DataManipulation.secure_delete([var for var in locals().values() if var is not None and var is not node])
     return node
 
@@ -1499,7 +1499,7 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
       
 def prepareTransaction(filename, password, totp_code, amount, sender, private_key, receiver, message, node):
     
-    message_extension = "Sent From Denaro Wallet Client v0.0.6-beta"
+    message_extension = "Sent From stellaris Wallet Client v0.0.6-beta"
     max_message_length = 256 - len(message_extension) + 3
     if len(message) > max_message_length:
         logging.error(f"Message length exceeded, must be between 0-{max_message_length} characters.")
@@ -1593,7 +1593,7 @@ def create_transaction(private_key, sender, receiving_address, amount, message: 
     transaction_amount = sum(input.amount for input in transaction_inputs)
     if transaction_amount < amount:
         DataManipulation.secure_delete([var for var in locals().values() if var is not None and var is not transaction_amount])
-        logging.error(f"Consolidate outputs: send {transaction_amount} Denaro to yourself")
+        logging.error(f"Consolidate outputs: send {transaction_amount} stellaris to yourself")
         return None
     
     # Create the transaction
@@ -1792,14 +1792,14 @@ def get_price_info(currency_code=None):
             print(f"\nError during request to CoinMarketCap API:\n {e}")
             # Fallback URL if the first request fails
             try:
-                fallback_url = 'https://cmc-api.denaro.is/price'
+                fallback_url = 'https://cmc-api.stellaris.is/price'
                 print(f"\nUsing fallback API at: {fallback_url}")
                 fallback_response = requests.get(fallback_url)
                 fallback_response.raise_for_status()
                 price_usd = Decimal(fallback_response.json()['USD']).quantize(Decimal('0.00000001'))
             except requests.RequestException as e:
                 print(f"\nError during request to fallback API:\n {e}")
-                print("\nFailed to get the real-world price of Denaro.")
+                print("\nFailed to get the real-world price of stellaris.")
                 price_usd = Decimal('0')
 
         # Early return for USD
@@ -2145,11 +2145,11 @@ def main():
     verbose_parser.add_argument('-verbose', action='store_true', help='Enables info and debug messages.')
     
     #Node URL parser 
-    denaro_node = argparse.ArgumentParser(add_help=False)
-    denaro_node.add_argument('-node', type=str, help="Specifies the URL or IP address of a Denaro node.")
+    stellaris_node = argparse.ArgumentParser(add_help=False)
+    stellaris_node.add_argument('-node', type=str, help="Specifies the URL or IP address of a stellaris node.")
 
     # Create the parser
-    parser = argparse.ArgumentParser(description="Manages wallets and transactions for the Denaro crypto-currency.")
+    parser = argparse.ArgumentParser(description="Manages wallets and transactions for the stellaris crypto-currency.")
     subparsers = parser.add_subparsers(dest='command')
     
     # Main parser for 'generate' command
@@ -2178,12 +2178,12 @@ def main():
     parser_generateaddress.add_argument('-amount', help="Specifies the amount of addresses to generate (Maximum of 256).", type=int)
  
     # Subparser for generating a paper wallet
-    parser_generatepaperwallet = generate_subparsers.add_parser('paperwallet', help="Used to generate a Denaro paper wallet either by using an address that is associated with a wallet file, or directly via a private key that corresponds to a particular address.", parents=[verbose_parser])
+    parser_generatepaperwallet = generate_subparsers.add_parser('paperwallet', help="Used to generate a stellaris paper wallet either by using an address that is associated with a wallet file, or directly via a private key that corresponds to a particular address.", parents=[verbose_parser])
     parser_generatepaperwallet.add_argument('-wallet', help="Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.")
     parser_generatepaperwallet.add_argument('-password', help="The password of the specified wallet. Required for wallets that are encrypted.")
     parser_generatepaperwallet.add_argument('-2fa-code', help="Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.", dest='tfacode', required=False, type=str)
-    parser_generatepaperwallet.add_argument('-address', help="Specifies a Denaro address associated with the wallet file. A paper wallet will be generated for this Denaro address.")
-    parser_generatepaperwallet.add_argument('-private-key', help="Specifies the private key associated with a Denaro address. Not required if specifying an address from a wallet file.", dest='private_key')   
+    parser_generatepaperwallet.add_argument('-address', help="Specifies a stellaris address associated with the wallet file. A paper wallet will be generated for this stellaris address.")
+    parser_generatepaperwallet.add_argument('-private-key', help="Specifies the private key associated with a stellaris address. Not required if specifying an address from a wallet file.", dest='private_key')   
     parser_generatepaperwallet.add_argument('-type', help="Specifies the file type for the paper wallet. The default filetype is PDF.", choices=['pdf','png'], default='pdf')
 
     # Subparser for decrypting the wallet
@@ -2201,11 +2201,11 @@ def main():
     parser_filter.add_argument('-show', help="Filters wallet entries origin. 'generated' is used to retrieve only the information of internally generated wallet entries. 'imported' is used to retrieve only the information of imported wallet entries.", choices=['generated', 'imported'], dest="filter_subparser_show")    
     
     # Subparser for importing wallet data based on a private key
-    parser_import = subparsers.add_parser('import',help="Used to import a wallet entry into a specified wallet file using the private key of a Denaro address.", parents=[verbose_parser])
+    parser_import = subparsers.add_parser('import',help="Used to import a wallet entry into a specified wallet file using the private key of a stellaris address.", parents=[verbose_parser])
     parser_import.add_argument('-wallet', help="Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.", required=True)
     parser_import.add_argument('-password', help="The password of the specified wallet. Required for wallets that are encrypted.")
     parser_import.add_argument('-2fa-code', help="Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.", dest='tfacode', required=False, type=str)
-    parser_import.add_argument('-private-key', help="Specifies the private key associated with a Denaro address to import.", dest='private_key', required=True)
+    parser_import.add_argument('-private-key', help="Specifies the private key associated with a stellaris address to import.", dest='private_key', required=True)
 
     # Subparser for backing up wallet
     parser_backupwallet = subparsers.add_parser('backupwallet',help="Used to create a backup of a wallet file.", parents=[verbose_parser])
@@ -2213,26 +2213,26 @@ def main():
     parser_backupwallet.add_argument('-path', help="Specifies the directory to save the wallet backup file. Defaults to the `./wallets/wallet_backups/` directory if no specific filepath is provided.")
 
     # Subparser for sending a transaction
-    parser_send = subparsers.add_parser('send',help="Main command to initiate a Denaro transaction.", parents=[verbose_parser, denaro_node])
-    parser_send.add_argument('-amount', required=True, help="Specifies the amount of Denaro to be sent.")    
+    parser_send = subparsers.add_parser('send',help="Main command to initiate a stellaris transaction.", parents=[verbose_parser, stellaris_node])
+    parser_send.add_argument('-amount', required=True, help="Specifies the amount of stellaris to be sent.")    
     
     # Subparser to specify the wallet file and address to send from. The private key of an address can also be specified.
     send_from_subparser = parser_send.add_subparsers(dest='transaction_send_from_subparser', required=True)
-    parser_send_from = send_from_subparser.add_parser('from',help="Specifies the sender's details.", parents=[verbose_parser, denaro_node])
+    parser_send_from = send_from_subparser.add_parser('from',help="Specifies the sender's details.", parents=[verbose_parser, stellaris_node])
     parser_send_from.add_argument('-wallet', help="Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.")
     parser_send_from.add_argument('-password', help="The password of the specified wallet. Required for wallets that are encrypted.")
     parser_send_from.add_argument('-2fa-code', help="Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.", dest='tfacode', required=False, type=str)
-    parser_send_from.add_argument('-address', help="The Denaro address to send from. The address must be associated with the specified wallet.")
-    parser_send_from.add_argument('-private-key', help="Specifies the private key associated with a Denaro address. Not required if specifying an address from a wallet file.", dest='private_key')
+    parser_send_from.add_argument('-address', help="The stellaris address to send from. The address must be associated with the specified wallet.")
+    parser_send_from.add_argument('-private-key', help="Specifies the private key associated with a stellaris address. Not required if specifying an address from a wallet file.", dest='private_key')
     
     # Subparser to specify the receiving address and optional transaction message.
     parser_send_to_subparser = parser_send_from.add_subparsers(dest='transaction_send_to_subparser', required=True)
-    parser_send_to = parser_send_to_subparser.add_parser('to',help="Specifies the receiver's details.", parents=[verbose_parser, denaro_node])
+    parser_send_to = parser_send_to_subparser.add_parser('to',help="Specifies the receiver's details.", parents=[verbose_parser, stellaris_node])
     parser_send_to.add_argument('receiver', help="The receiveing address.")
     parser_send_to.add_argument('-message', help="Optional transaction message.", default="")
     
     # Subparser for checking balance
-    parser_balance = subparsers.add_parser('balance',help="Used to check the balance of addresses in the Denaro blockchain that are asociated with a specified wallet file.", parents=[verbose_parser, denaro_node])
+    parser_balance = subparsers.add_parser('balance',help="Used to check the balance of addresses in the stellaris blockchain that are asociated with a specified wallet file.", parents=[verbose_parser, stellaris_node])
     parser_balance.add_argument('-wallet', help="Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.", required=True)
     parser_balance.add_argument('-password', help="The password of the specified wallet. Required for wallets that are encrypted.")
     parser_balance.add_argument('-2fa-code', help="Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.", dest='tfacode', required=False, type=str)
@@ -2288,7 +2288,7 @@ def main():
         transaction = prepareTransaction(filename=args.wallet, password=args.password, totp_code=args.tfacode if args.tfacode else "", amount=args.amount, sender=args.address if args.address else None, private_key=args.private_key if args.private_key else None, receiver=args.receiver, message=args.message, node=args.node)
         if transaction:
             print(f'Transaction successfully pushed to node. \nTransaction hash: {sha256(transaction.hex())}')
-            print(f'\nDenaro Explorer link: http://explorer.denaro.is/transaction/{sha256(transaction.hex())}')
+            print(f'\nstellaris Explorer link: http://explorer.stellaris.is/transaction/{sha256(transaction.hex())}')
     
     elif args.command == 'balance':
         # Check if the currency code is valid and get the corresponding symbol
