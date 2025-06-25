@@ -1259,9 +1259,9 @@ def validate_and_select_node(node):
     if node:
         is_node_valid, node = Verification.validate_node_address(node)
         if not is_node_valid:
-            node = 'https://stellaris-node.gaetano.eu.org'
+            node = 'https://stellaris-node.connor33341.dev'
     else:
-        node = 'https://stellaris-node.gaetano.eu.org'
+        node = 'https://stellaris-node.connor33341.dev'
     DataManipulation.secure_delete([var for var in locals().values() if var is not None and var is not node])
     return node
 
@@ -1397,7 +1397,7 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
         if entry_data is not None:                    
             if not to_json and not to_file:
                 # Print balance information
-                print(f"\nDNR/{currency_code} Price: {currency_symbol}{formatted_price_str} {'(Calculated from USD)' if not currency_code == 'USD' else ''}\nBalance Information For: {filename}")
+                print(f"\nSTE/{currency_code} Price: {currency_symbol}{formatted_price_str} {'(Calculated from USD)' if not currency_code == 'USD' else ''}\nBalance Information For: {filename}")
                 print("-"*59)
                 for entry_feild in entry_data:
                     if entry_feild == "imported_entries":
@@ -1415,8 +1415,8 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
                             break
                         total_balance += balance
                         total_pending += pending_balance
-                        # Output the balance in DNR and its value in the chosen currency                  
-                        print(f'{"Imported " if is_import else ""}Address #{id}: {address}\nBalance: {balance} DNR{f" (Pending: {pending_balance} DNR)" if pending_balance != 0 else ""}\n{currency_code} Value: {currency_symbol}{formatted_balance_value}\n')
+                        # Output the balance in STE and its value in the chosen currency                  
+                        print(f'{"Imported " if is_import else ""}Address #{id}: {address}\nBalance: {balance} STE{f" (Pending: {pending_balance} STE)" if pending_balance != 0 else ""}\n{currency_code} Value: {currency_symbol}{formatted_balance_value}\n')
                 print("\033[F"+"-"*59)
                 # Convert total_balance to Decimal
                 total_balance_decimal = Decimal(str(total_balance))
@@ -1424,7 +1424,7 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
                 # Format the total balance value as a regular decimal string
                 formatted_total_balance_value = "{:.7f}".format(total_balance_value)
 
-                print(f'Total Balance: {total_balance} DNR\nTotal {currency_code} Value: {currency_symbol}{formatted_total_balance_value}')
+                print(f'Total Balance: {total_balance} STE\nTotal {currency_code} Value: {currency_symbol}{formatted_total_balance_value}')
                 DataManipulation.secure_delete([var for var in locals().values() if var is not None])
             
             if to_json or to_file:
@@ -1451,7 +1451,7 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
                                 "id": entry['id'],
                                 "address": address,
                                 "balance": {
-                                    "currency" : "DNR",
+                                    "currency" : "STE",
                                     "amount" : str(balance),
                                     f"{currency_code.lower()}_value": f'{currency_symbol}{round(balance * formatted_price, 6)}'
                                 }
@@ -1461,12 +1461,12 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
                                 "id": entry['id'],
                                 "address": address,
                                 "balance": {
-                                    "currency" : "DNR",
+                                    "currency" : "STE",
                                     "amount" : str(balance),
                                     f"{currency_code.lower()}_value": f'{currency_symbol}{round(balance * formatted_price, 6)}'
                                 }
                             })
-                balance_data['balance_data']['total_balance'] = str(total_balance)+" DNR"
+                balance_data['balance_data']['total_balance'] = str(total_balance)+" STE"
                 balance_data['balance_data'][f'total_{currency_code.lower()}_value'] = f'{currency_symbol}{str(round(total_balance * formatted_price, 6))}'
                 if to_json:
                     print(json.dumps(balance_data, indent=4,ensure_ascii=False))
@@ -1537,7 +1537,7 @@ def prepareTransaction(filename, password, totp_code, amount, sender, private_ke
         DataManipulation.secure_delete([var for var in locals().values() if var is not None])
         return None
     
-    print(f"Attempting to send {amount} DNR from {sender} to {receiver}.\n")
+    print(f"Attempting to send {amount} STE from {sender} to {receiver}.\n")
     # Create the transaction
     result = create_transaction([private_key], sender, receiver, amount, message, node=node)
     DataManipulation.secure_delete([var for var in locals().values() if var is not None and var is not result])
@@ -1774,7 +1774,7 @@ def get_balance_info(address: str, node: str):
 
 def get_price_info(currency_code=None):
     """
-    Fetches and calculates the price of DNR in the specified currency.
+    Fetches and calculates the price of STE in the specified currency.
     """
     try:
         # Validate or set default currency code
@@ -2237,7 +2237,7 @@ def main():
     parser_balance.add_argument('-password', help="The password of the specified wallet. Required for wallets that are encrypted.")
     parser_balance.add_argument('-2fa-code', help="Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.", dest='tfacode', required=False, type=str)
     parser_balance.add_argument('-address', help="Specifies one or more addresses to get the balance of. Adding a hyphen `-` to the beginning of an address will exclude it. Format is: `address=ADDRESS_1, ADDRESS_2, ADDRESS_3,...`")
-    parser_balance.add_argument('-convert-to', help="Converts the monetary value of balances to a user specified currency, factoring in current exchange rates against the USD value of DNR. Supports 161 international currencies and major cryptocurrencies. A valid currency code is required (e.g., 'USD', 'EUR', 'GBP', 'BTC'). By default balance values are calculated in USD.", dest='currency_code', type=str)
+    parser_balance.add_argument('-convert-to', help="Converts the monetary value of balances to a user specified currency, factoring in current exchange rates against the USD value of STE. Supports 161 international currencies and major cryptocurrencies. A valid currency code is required (e.g., 'USD', 'EUR', 'GBP', 'BTC'). By default balance values are calculated in USD.", dest='currency_code', type=str)
     parser_balance.add_argument('-show', help="Filters balance information based on entry origin. 'generated' is used to retrieve only the balance information of internally generated wallet entries. 'imported' is used to retrieve only the balance information of imported wallet entries.", choices=['generated', 'imported'])
     parser_balance.add_argument('-json', help="Prints the balance information in JSON format.", action='store_true')
     parser_balance.add_argument('-to-file', help="Saves the output of the balance information to a file. The resulting file will be in JSON format and named as '[WalletName]_balance_[Timestamp].json' and will be stored in '/[WalletDirectory]/balance_information/[WalletName]/'.", dest='to_file', action='store_true')

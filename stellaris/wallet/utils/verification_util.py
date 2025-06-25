@@ -188,7 +188,7 @@ class Verification:
     
     @staticmethod
     def try_request(address, chosen_protocol):
-        main_node_url = "https://denaro-node.gaetano.eu.org"
+        main_node_url = "https://stellaris-node.connor33341.dev"
         protocols = ["https://", "http://"]
 
         # Configure logging for detailed error information
