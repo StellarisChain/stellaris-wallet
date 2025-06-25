@@ -1,26 +1,26 @@
-# Denaro Wallet Client
+# Stellaris Wallet Client
 
 ## Introduction
-**This repo contains the source code for the Denaro Wallet Client, developed for the Denaro cryptocurrency. It has been designed with a strong emphasis on security, providing users with a secure and efficient way to manage their digital assets.** 
+**This repo contains the source code for the Stellaris Wallet Client, developed for the Stellaris cryptocurrency. It has been designed with a strong emphasis on security, providing users with a secure and efficient way to manage their digital assets.** 
 
 **The wallet client provides essential functionalities such as wallet creation, address generation, transaction processing, balance checking, and wallet imports. Advanced functionalities are also provided, including encryption and decryption capabilities, two-factor authentication (2FA), wallet entry filtering, support for deterministic wallets, and several security mechanisms to protect wallet data.**
 
-**Github repo for the Denaro cryptocurrency: https://github.com/denaro-coin/denaro**
+**Github repo for the Stellaris cryptocurrency: https://github.com/Stellaris-coin/Stellaris**
 
 ## Wallet Security Framework
-Paramount to it's design, the wallet client has been developed with a high-level of security in mind, perticularly for encrypted wallets. It features several protective security measures to safeguard and fortify wallet data. These measures include proof-of-work based brute-force protection, two-factor authentication, double-hashed password verification, and rigorous integrity checks of wallet data. Additionally, there are measures to identify and record unauthorized access attempts, along with an automatic wallet deletion feature which activates after 10 failed access attempts, providing an added layer of defense *([feat: Wallet Annihilation](https://github.com/The-Sycorax/DenaroWalletClient/commit/e347b6622d47415ddc531e8b3292c96b42128c9a))*.
+Paramount to it's design, the wallet client has been developed with a high-level of security in mind, perticularly for encrypted wallets. It features several protective security measures to safeguard and fortify wallet data. These measures include proof-of-work based brute-force protection, two-factor authentication, double-hashed password verification, and rigorous integrity checks of wallet data. Additionally, there are measures to identify and record unauthorized access attempts, along with an automatic wallet deletion feature which activates after 10 failed access attempts, providing an added layer of defense *([feat: Wallet Annihilation](https://github.com/The-Sycorax/StellarisWalletClient/commit/e347b6622d47415ddc531e8b3292c96b42128c9a))*.
 
 Inherent to its architecture, the wallet client deeply inegrates and bakes these security measures directly into the cryptographic processes that are responsible for encrypting and decrypting wallet data. Central to this approach is a unique dual-layer technique that combines both the ChaCha20-Poly1305 and AES-GCM encryption algorithms. 
 
 This encryption method is implemented in stages, beginning with the encryption of individual JSON key-value pairs of wallet data using the dual-layer technique. Afterwhich, the entire JSON entry that contains these encrypted key-value pairs is also encrypted, resulting in multiple layers of encryption. By implementing this multi-layered encryption approach along with the various security mechanisms, the wallet client not only secures wallet data but also substantially fortifies its underlying cryptographic keys against a variety of threats.
 
 ## Installation Guide
-*Note: The Denaro Wallet Client has not been tested on Windows or MacOS and support is unknown at this time. It is reccomended to use the wallet client on Ubuntu/Debian Linux to avoid any compatibility or stability issues.*
+*Note: The Stellaris Wallet Client has not been tested on Windows or MacOS and support is unknown at this time. It is reccomended to use the wallet client on Ubuntu/Debian Linux to avoid any compatibility or stability issues.*
 
 ```bash
 # Clone the repository
-git clone https://github.com/The-Sycorax/DenaroWalletClient.git
-cd DenaroWalletClient
+git clone https://github.com/The-Sycorax/StellarisWalletClient.git
+cd StellarisWalletClient
 
 # Update package list and install required library
 sudo apt update
@@ -53,10 +53,9 @@ deactivate
 ## Usage Documentation
 - ### Command-Line Interface:
 
-    **Overview**: The Denaro Wallet Client provides a rebust CLI for various operations. This section provides detailed usage documentation for the various sub-commands along with their corresponding options. 
+    **Overview**: The Stellaris Wallet Client provides a rebust CLI for various operations. This section provides detailed usage documentation for the various sub-commands along with their corresponding options. 
     
-    *Note: To ensure a high level of security, this wallet client is designed with an auto-delete feature for encrypted wallets. After 10 unsuccessful password attempts, the wallet will be automatically deleted in order to protect its contents and safeguard against unauthorized access. (For more details, please refer to: [feat: Wallet Annihilation](https://github.com/The-Sycorax/DenaroWalletClient/commit/e347b6622d47415ddc531e8b3292c96b42128c9a))*    
-    
+    *Note: To ensure a high level of security, this wallet client is designed with an auto-delete feature for encrypted wallets. After 10 unsuccessful password attempts, the wallet will be automatically deleted in order to protect its contents and safeguard against unauthorized access.*
     - ### Sub-Commands:   
         <details>
         <summary>Expand</summary>
@@ -124,7 +123,7 @@ deactivate
         ---
         
         #### `generate paperwallet`
-        **Overview**: The `generate paperwallet` sub-command is used to generate a Denaro paper wallet either by using an address that is associated with a wallet file, or directly via a private key that corresponds to a particular address.
+        **Overview**: The `generate paperwallet` sub-command is used to generate a Stellaris paper wallet either by using an address that is associated with a wallet file, or directly via a private key that corresponds to a particular address.
              
         * *If specifying an address that is associated with a wallet file then the generated paper wallet will be stored in `./wallets/paper_wallet/[walletName]/`.*             
         * *If specifying a private key that corresponds to a particular address then the generated paper wallet will be stored in `./wallets/paper_wallets/`.* 
@@ -147,8 +146,8 @@ deactivate
             * `-wallet`: Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.
             * `-password`: The password of the specified wallet. Required for wallets that are encrypted.  
             * `-2fa-code`: Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.
-            * `-address`: Specifies a Denaro address associated with the wallet file. A paper wallet will be generated for this Denaro address.
-            * `-private-key`: Specifies the private key associated with a Denaro address. Not required if specifying an address from a wallet file.
+            * `-address`: Specifies a Stellaris address associated with the wallet file. A paper wallet will be generated for this Stellaris address.
+            * `-private-key`: Specifies the private key associated with a Stellaris address. Not required if specifying an address from a wallet file.
              
              * `-type`: Specifies the file type for the paper wallet. The default filetype is PDF.                 
                 * `-type png` generates a PNG image of the front of the paper wallet. 
@@ -219,7 +218,7 @@ deactivate
         ---
         
         #### `send`
-        **Overview**: The `send` sub-command is used to initiate a transaction on the Denaro blockchain. This sub-command allows users to send Denaro to a specified address. 
+        **Overview**: The `send` sub-command is used to initiate a transaction on the Stellaris blockchain. This sub-command allows users to send Stellaris to a specified address. 
         
         *Note: The source of funds for the transaction (the sender) can be specified in two ways: either by using an address that is associated with a wallet file, or directly via a private key that corresponds to a particular address.*
 
@@ -234,21 +233,21 @@ deactivate
         
         - **Options**:
             * `send`: Main command to initiate a transaction.
-                * `-amount`: (Required) Specifies the amount of Denaro to be sent.
+                * `-amount`: (Required) Specifies the amount of Stellaris to be sent.
         
             * `from <options>`: Specifies the sender's details.
                 * `-wallet`: Specifies the wallet filename. Defaults to the `./wallets/` directory if no specific filepath is provided.
                 * `-password`: The password of the specified wallet. Required for wallets that are encrypted.
                 * `-2fa-code`: Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.
-                * `-address`: The Denaro address to send from. The address must be associated with the specified wallet.                
-                * `-private-key`: Specifies the private key associated with a Denaro address. Not required if specifying an address from a wallet file.    
+                * `-address`: The Stellaris address to send from. The address must be associated with the specified wallet.                
+                * `-private-key`: Specifies the private key associated with a Stellaris address. Not required if specifying an address from a wallet file.    
             
             * `to <options>`: Specifies the receiver's details.
                 * `receiver`: (Required) The receiving address.            
                 
                 * `-message`: Optional transaction message.
         
-            * `-node`: Specifies the Denaro node to connect to. Must be a valid IP Address or URL. If not specified or the node is not valid, then the wallet client will use the default Denaro node (https://denaro-node.gaetano.eu.org/).
+            * `-node`: Specifies the Stellaris node to connect to. Must be a valid IP Address or URL. If not specified or the node is not valid, then the wallet client will use the default Stellaris node (https://Stellaris-node.gaetano.eu.org/).
         
         </dd></dl>
         </details>
@@ -256,7 +255,7 @@ deactivate
         ---
         
         #### `balance`
-        **Overview**: The `balance` sub-command is used to check the balance of addresses on the Denaro blockchain that are asociated with a specified wallet file. 
+        **Overview**: The `balance` sub-command is used to check the balance of addresses on the Stellaris blockchain that are asociated with a specified wallet file. 
         
         *Note: Similar to `decryptwallet filter`, the `balance` sub-command can also filter wallet entries. The `-address` option can be used to filter one or more addresses that are associated with a wallet. Addresses can be excluded by adding a hyphen (`-`) to the beginning of it. Wallet entries can also be filtered based on origin (See `-show` option for more details).*
         
@@ -285,7 +284,7 @@ deactivate
             * `-json`: Prints the balance information in JSON format.
             * `-to-file`: Saves the output of the balance information to a file. The resulting file will be in JSON format and named as "*[WalletName]​_balance_[Timestamp].json*" and will be stored in "*/[WalletDirectory]/balance_information/[WalletName]/*".    
            
-            * `-node`: Specifies the Denaro node to connect to. Must be a valid IP Address or URL. If not specified or the node is not valid, then the wallet client will use the default Denaro node (https://denaro-node.gaetano.eu.org/).
+            * `-node`: Specifies the Stellaris node to connect to. Must be a valid IP Address or URL. If not specified or the node is not valid, then the wallet client will use the default Stellaris node (https://Stellaris-node.gaetano.eu.org/).
         
         </dd></dl>
         </details>
@@ -293,7 +292,7 @@ deactivate
         ---
         
         #### `import`
-        **Overview**: The `import` sub-command is used to import a wallet entry into a specified wallet file using the private key of a Denaro address.
+        **Overview**: The `import` sub-command is used to import a wallet entry into a specified wallet file using the private key of a Stellaris address.
 
         <details>
         <summary>Usage:</summary> 
@@ -309,7 +308,7 @@ deactivate
             * `-password`: The password of the specified wallet. Required for wallets that are encrypted.    
             * `-2fa-code`: Optional Two-Factor Authentication code for encrypted wallets that have 2FA enabled. Should be the 6-digit code generated from an authenticator app.
             
-            * `-private-key`: Specifies the private key of a Denaro address. Used to generate the corresponding entry data which will be imported into a wallet file.
+            * `-private-key`: Specifies the private key of a Stellaris address. Used to generate the corresponding entry data which will be imported into a wallet file.
             
         </dd></dl>
         </details>
@@ -478,11 +477,11 @@ deactivate
         <summary>Expand</summary>
         
         *Note: If a wallet is encrypted, be sure to specify the password for it.*
-        * Sends 100 Denaro to a recipient using an address associated with a wallet:        
+        * Sends 100 Stellaris to a recipient using an address associated with a wallet:        
             ```bash
             python3 wallet_client.py send -amount=100 from -wallet=wallet.json -address=DuxRWZXZSeuWGmjTJ99GH5Yj5ri4kVy55MGFAL74wZcW4 to DwpnwDyCTEXP4q7fLRzo4vwQvGoGuDKxikpCHB9BwSiMA
             ```
-        * Sends 100 Denaro to a recipient using the priate key associated with a Denaro address:
+        * Sends 100 Stellaris to a recipient using the priate key associated with a Stellaris address:
             
             *Private keys should be in hexdecimal format and are generally 64 characters in length. It is not reccomended to directly specify a private key, as this could lead to the irreversable loss of funds if anyone has access to it.*
 
@@ -559,7 +558,7 @@ deactivate
         
         *Private keys should be in hexdecimal format and are generally 64 characters in length. It is not reccomended to directly specify a private key, as this could lead to the irreversable loss of funds if anyone has access to it. The private key in this example was randomly generated and dose not have funds.*
         
-        * Imports a wallet entry based on the private key of a Denaro address:
+        * Imports a wallet entry based on the private key of a Stellaris address:
             
             ```bash
             python3 wallet_client.py import -wallet=wallet.json -private-key=43c718efb31e0fef4c94cbd182e3409f54da0a8eab8d9713f5b6b616cddbf4cf
@@ -576,5 +575,5 @@ Neither The-Sycorax nor contributors of this project assume liability for any lo
 ------------
 
 ## License
-The Denaro Wallet Client is released under the terms of the MIT license. See [LICENSE](LICENSE) for more
+The Stellaris Wallet Client is released under the terms of the MIT license. See [LICENSE](LICENSE) for more
 information or see https://opensource.org/licenses/MIT.
