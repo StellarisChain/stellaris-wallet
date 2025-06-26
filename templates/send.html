@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}Send Transaction - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-paper-plane"></i> Send Stellaris
+            </h1>
+        </div>
+    </div>
+
+    {% if current_wallet %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-exchange-alt"></i> Transaction Details</h3>
+                </div>
+                <div class="card-body">
+                    <form id="sendForm">
+                        <div class="mb-3">
+                            <label for="fromAddress" class="form-label">From Address *</label>
+                            <select class="form-select" id="fromAddress" required>
+                                <option value="">Select sender address...</option>
+                            </select>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadAddresses()">
+                                <i class="fas fa-sync-alt"></i> Load Addresses
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="toAddress" class="form-label">To Address *</label>
+                            <input type="text" class="form-control" id="toAddress" required
+                                   placeholder="Enter recipient address">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount (STE) *</label>
+                            <input type="number" class="form-control" id="amount" required 
+                                   step="0.000001" min="0.000001"
+                                   placeholder="0.000000">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message (Optional)</label>
+                            <input type="text" class="form-control" id="message"
+                                   placeholder="Optional transaction message">
+                        </div>
+
+                        <div class="mb-3" id="passwordField">
+                            <label for="password" class="form-label">Wallet Password *</label>
+                            <input type="password" class="form-control" id="password" required
+                                   placeholder="Enter wallet password">
+                            <small class="text-muted" id="passwordHint">Password required for encrypted wallets</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="totpCode" class="form-label">2FA Code (if enabled)</label>
+                            <input type="text" class="form-control" id="totpCode"
+                                   placeholder="Enter 6-digit 2FA code">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="sendBtn">
+                                <i class="fas fa-paper-plane"></i> Send Transaction
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Preview -->
+    <div class="row justify-content-center mt-4" id="previewSection" style="display: none;">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-eye"></i> Transaction Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div id="previewContent"></div>
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-success" onclick="confirmTransaction()">
+                            <i class="fas fa-check"></i> Confirm & Send
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="cancelTransaction()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Wallet Loaded -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Please load a wallet first to send transactions.</p>
+                    <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Load Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Security Notice -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-shield-alt"></i> Security Notice</h5>
+                <ul class="mb-0">
+                    <li>Always verify the recipient address before sending</li>
+                    <li>Double-check the amount before confirming</li>
+                    <li>Transactions are irreversible once confirmed</li>
+                    <li>Keep your private keys and passwords secure</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let transactionData = {};
+    let walletEncrypted = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_wallet %}
+        // Check wallet encryption status
+        checkWalletStatus();
+        
+        document.getElementById('sendForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            previewTransaction();
+        });
+        {% endif %}
+    });
+
+    function checkWalletStatus() {
+        fetch('/api/wallet-status')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    walletEncrypted = result.encrypted;
+                    updatePasswordField();
+                    // Auto-load addresses for unencrypted wallets
+                    if (!walletEncrypted) {
+                        loadAddresses();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking wallet status:', error);
+            });
+    }
+
+    function updatePasswordField() {
+        const passwordField = document.getElementById('passwordField');
+        const passwordInput = document.getElementById('password');
+        const passwordHint = document.getElementById('passwordHint');
+        
+        if (!walletEncrypted) {
+            passwordField.style.display = 'none';
+            passwordInput.required = false;
+            passwordHint.textContent = 'Wallet is not encrypted';
+        } else {
+            passwordField.style.display = 'block';
+            passwordInput.required = true;
+            passwordHint.textContent = 'Password required for encrypted wallets';
+        }
+    }
+
+    function loadAddresses() {
+        const password = document.getElementById('password').value;
+        
+        // Only require password for encrypted wallets
+        if (walletEncrypted && !password) {
+            showAlert('Please enter your wallet password to load addresses', 'warning');
+            return;
+        }
+
+        const params = new URLSearchParams();
+        if (walletEncrypted && password) {
+            params.append('password', password);
+        }
+
+        fetch(`/api/addresses?${params}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.data.entry_data) {
+                    populateAddressSelect(result.data.entry_data);
+                    showAlert('Addresses loaded successfully!', 'success');
+                } else {
+                    showAlert(result.error || 'Failed to load addresses', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error loading addresses', 'danger');
+            });
+    }
+
+    function populateAddressSelect(entryData) {
+        const select = document.getElementById('fromAddress');
+        select.innerHTML = '<option value="">Select sender address...</option>';
+
+        // Add generated addresses
+        if (entryData.entries) {
+            entryData.entries.forEach(entry => {
+                const option = document.createElement('option');
+                option.value = entry.address;
+                option.textContent = `${entry.id}: ${entry.address.substring(0, 20)}...`;
+                select.appendChild(option);
+            });
+        }
+
+        // Add imported addresses
+        if (entryData.imported_entries) {
+            entryData.imported_entries.forEach(entry => {
+                const option = document.createElement('option');
+                option.value = entry.address;
+                option.textContent = `${entry.id} (Imported): ${entry.address.substring(0, 20)}...`;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    function previewTransaction() {
+        const fromAddress = document.getElementById('fromAddress').value;
+        const toAddress = document.getElementById('toAddress').value;
+        const amount = document.getElementById('amount').value;
+        const message = document.getElementById('message').value;
+        const password = document.getElementById('password').value;
+        const totpCode = document.getElementById('totpCode').value;
+
+        // Validation
+        if (!fromAddress || !toAddress || !amount) {
+            showAlert('Please fill in all required fields', 'danger');
+            return;
+        }
+
+        // Only require password for encrypted wallets
+        if (walletEncrypted && !password) {
+            showAlert('Password is required for encrypted wallet', 'danger');
+            return;
+        }
+
+        if (parseFloat(amount) <= 0) {
+            showAlert('Amount must be greater than 0', 'danger');
+            return;
+        }
+
+        // Store transaction data
+        transactionData = {
+            from_address: fromAddress,
+            to_address: toAddress,
+            amount: amount,
+            message: message,
+            password: password,
+            totp_code: totpCode
+        };
+
+        // Show preview
+        const previewHtml = `
+            <div class="row">
+                <div class="col-sm-4"><strong>From:</strong></div>
+                <div class="col-sm-8"><code>${fromAddress}</code></div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-sm-4"><strong>To:</strong></div>
+                <div class="col-sm-8"><code>${toAddress}</code></div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-sm-4"><strong>Amount:</strong></div>
+                <div class="col-sm-8"><strong>${amount} STE</strong></div>
+            </div>
+            ${message ? `<hr><div class="row"><div class="col-sm-4"><strong>Message:</strong></div><div class="col-sm-8">${message}</div></div>` : ''}
+        `;
+
+        document.getElementById('previewContent').innerHTML = previewHtml;
+        document.getElementById('previewSection').style.display = 'block';
+        
+        // Scroll to preview
+        document.getElementById('previewSection').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }
+
+    function confirmTransaction() {
+        const confirmBtn = event.target;
+        const originalText = confirmBtn.innerHTML;
+        
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        confirmBtn.disabled = true;
+
+        fetch('/api/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        })
+        .then(response => response.json())
+        .then(result => {
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+            
+            if (result.success) {
+                showAlert('Transaction sent successfully!', 'success');
+                
+                // Show transaction hash if available
+                if (result.tx_hash) {
+                    showAlert(`Transaction Hash: ${result.tx_hash}`, 'info');
+                }
+                
+                // Reset form
+                document.getElementById('sendForm').reset();
+                document.getElementById('previewSection').style.display = 'none';
+                
+                // Redirect to dashboard after delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+            console.error('Error:', error);
+            showAlert('An error occurred while sending the transaction', 'danger');
+        });
+    }
+
+    function cancelTransaction() {
+        document.getElementById('previewSection').style.display = 'none';
+        transactionData = {};
+    }
+</script>
+{% endblock %}

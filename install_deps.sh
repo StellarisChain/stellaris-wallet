@@ -1,0 +1,1 @@
+sudo apt update && sudo apt install -y libgl1-mesa-glx libglib2.0-0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 xvfb

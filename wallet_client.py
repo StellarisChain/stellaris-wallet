@@ -1492,6 +1492,7 @@ def checkBalance(filename, password, totp_code, address, node, to_json, to_file,
                         json.dump(balance_data, file, indent=4,ensure_ascii=False)
         
                     print(f"\nBalance information saved to file: {file_path}")
+                return balance_data
                 DataManipulation.secure_delete([var for var in locals().values() if var is not None])
         else:
             DataManipulation.secure_delete([var for var in locals().values() if var is not None])
@@ -1787,7 +1788,7 @@ def get_price_info(currency_code=None):
             cmc_url = 'https://api.coinmarketcap.com/dexer/v3/dexer/pair-info?dexer-platform-name=bsc&address=0x638da797f50131c7f8fe1b0de864acee773d0bab&t=1705093806632'
             cmc_response = requests.get(cmc_url)
             cmc_response.raise_for_status()
-            price_usd = Decimal(cmc_response.json()['data']['priceUsd']).quantize(Decimal('0.0000001'))
+            price_usd = Decimal(cmc_response.json()['data']['priceUsd']).quantize(Decimal('0.0000001')) * 100000
         except requests.RequestException as e:
             print(f"\nError during request to CoinMarketCap API:\n {e}")
             # Fallback URL if the first request fails

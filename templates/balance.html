@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Balance - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-wallet"></i> Balance Overview
+            </h1>
+        </div>
+    </div>
+
+    {% if current_wallet %}
+    <!-- Balance Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cogs"></i> Balance Options</h3>
+                </div>
+                <div class="card-body">
+                    <form id="balanceForm" class="row g-3">
+                        <div class="col-md-4" id="passwordField">
+                            <label for="password" class="form-label">Wallet Password</label>
+                            <input type="password" class="form-control" id="password"
+                                   placeholder="Enter wallet password">
+                            <small class="text-muted" id="passwordHint">Password required for encrypted wallets</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="currency" class="form-label">Currency</label>
+                            <select class="form-select" id="currency">
+                                <option value="USD" selected>USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="BTC">BTC (₿)</option>
+                                <option value="ETH">ETH (Ξ)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="showType" class="form-label">Show</label>
+                            <select class="form-select" id="showType">
+                                <option value="" selected>All Addresses</option>
+                                <option value="generated">Generated Only</option>
+                                <option value="imported">Imported Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100" id="refreshBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Balance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="stat-card">
+                <h3 id="totalBalance">0.00 STE</h3>
+                <p>Total Balance</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stat-card">
+                <h3 id="totalValue">$0.00</h3>
+                <p id="totalValueLabel">Total USD Value</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Details -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Address Balances</h3>
+                </div>
+                <div class="card-body">
+                    <div id="balanceTableContainer">
+                        <div class="text-center py-5">
+                            <i class="fas fa-info-circle fa-2x text-muted"></i>
+                            <p class="mt-2 text-muted">Click "Refresh" to load balance data</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Wallet Loaded -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Please load a wallet first to view balance information.</p>
+                    <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Load Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let walletEncrypted = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_wallet %}
+        // Check wallet encryption status
+        checkWalletStatus();
+        
+        document.getElementById('balanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            refreshBalance();
+        });
+        
+        // Auto-refresh for unencrypted wallets
+        if (!walletEncrypted) {
+            refreshBalance();
+        }
+        {% endif %}
+    });
+
+    function checkWalletStatus() {
+        fetch('/api/wallet-status')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    walletEncrypted = result.encrypted;
+                    updatePasswordField();
+                }
+            })
+            .catch(error => {
+                console.error('Error checking wallet status:', error);
+            });
+    }
+
+    function updatePasswordField() {
+        const passwordField = document.getElementById('passwordField');
+        const passwordInput = document.getElementById('password');
+        const passwordHint = document.getElementById('passwordHint');
+        
+        if (!walletEncrypted) {
+            passwordField.style.display = 'none';
+            passwordInput.required = false;
+            passwordHint.textContent = 'Wallet is not encrypted';
+        } else {
+            passwordField.style.display = 'block';
+            passwordInput.required = true;
+            passwordHint.textContent = 'Password required for encrypted wallets';
+        }
+    }
+
+    function refreshBalance() {
+        const password = document.getElementById('password').value;
+        const currency = document.getElementById('currency').value;
+        const showType = document.getElementById('showType').value;
+
+        // Only require password for encrypted wallets
+        if (walletEncrypted && !password) {
+            showAlert('Please enter your wallet password', 'warning');
+            return;
+        }
+
+        showLoading('refreshBtn');
+        
+        // Update loading state
+        document.getElementById('balanceTableContainer').innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2 text-muted">Loading balance data...</p>
+            </div>
+        `;
+
+        // Build query parameters
+        const params = new URLSearchParams({
+            password: password,
+            currency: currency
+        });
+        
+        if (showType) {
+            params.append('show', showType);
+        }
+
+        fetch(`/api/balance?${params}`)
+            .then(response => {
+                console.log('Balance API response status:', response.status);
+                return response.json();
+            })
+            .then(result => {
+                console.log('Balance API result:', result);
+                hideLoading('refreshBtn', '<i class="fas fa-sync-alt"></i> Refresh');
+                
+                if (result.success) {
+                    console.log('Balance data:', result.data);
+                    displayBalanceData(result.data, currency);
+                    showAlert('Balance data updated successfully!', 'success');
+                } else {
+                    console.error('Balance API error:', result.error);
+                    showAlert(result.error, 'danger');
+                    document.getElementById('balanceTableContainer').innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            <p class="mt-2 text-danger">Error loading balance data: ${result.error}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                hideLoading('refreshBtn', '<i class="fas fa-sync-alt"></i> Refresh');
+                console.error('Error:', error);
+                showAlert('An error occurred while fetching balance data', 'danger');
+                document.getElementById('balanceTableContainer').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                        <p class="mt-2 text-danger">Network error occurred</p>
+                    </div>
+                `;
+            });
+    }
+
+    function formatBalance(balanceStr) {
+        // Extract the numeric part and unit from strings like "54000.000000 STE" or "54000.000000"
+        if (typeof balanceStr === 'string') {
+            const parts = balanceStr.trim().split(' ');
+            const numericPart = parts[0];
+            const unit = parts.length > 1 ? ' ' + parts.slice(1).join(' ') : '';
+            
+            // Convert to number and check if it has significant decimal places
+            const num = parseFloat(numericPart);
+            if (isNaN(num)) return balanceStr;
+            
+            // Check if the decimal part is all zeros
+            const decimalPart = numericPart.split('.')[1];
+            if (decimalPart && decimalPart.replace(/0/g, '') === '') {
+                // All decimal places are zeros, show as integer
+                return Math.floor(num).toString() + unit;
+            } else {
+                // Has significant decimal places, keep original formatting
+                return balanceStr;
+            }
+        }
+        return balanceStr;
+    }
+
+    function displayBalanceData(data, currency) {
+        // The data is already the balance_data structure
+        const balanceData = data.balance_data || data;
+        
+        console.log('Balance data received:', balanceData); // Debug log
+        
+        // Update totals with formatted balance
+        const totalBalance = balanceData.total_balance || '0 STE';
+        document.getElementById('totalBalance').textContent = formatBalance(totalBalance);
+        document.getElementById('totalValue').textContent = balanceData[`total_${currency.toLowerCase()}_value`] || '$0.00';
+        document.getElementById('totalValueLabel').textContent = `Total ${currency} Value`;
+
+        // Create table
+        let tableHtml = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Address</th>
+                            <th>Balance (STE)</th>
+                            <th>${currency} Value</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // Add generated addresses
+        if (balanceData.addresses && balanceData.addresses.length > 0) {
+            balanceData.addresses.forEach(addr => {
+                const balance = addr.balance || {};
+                const amount = balance.amount || '0.000000';
+                const formattedAmount = formatBalance(amount);
+                const usdValue = balance[currency.toLowerCase() + '_value'] || balance.usd_value || '$0.00';
+                
+                tableHtml += `
+                    <tr>
+                        <td><span class="badge bg-primary">${addr.id}</span></td>
+                        <td>
+                            <code class="text-truncate d-inline-block" style="max-width: 200px;">${addr.address}</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('${addr.address}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </td>
+                        <td><strong>${formattedAmount}</strong></td>
+                        <td><strong>${usdValue}</strong></td>
+                        <td><span class="badge bg-success">Generated</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Add imported addresses
+        if (balanceData.imported_addresses && balanceData.imported_addresses.length > 0) {
+            balanceData.imported_addresses.forEach(addr => {
+                const balance = addr.balance || {};
+                const amount = balance.amount || '0.000000';
+                const formattedAmount = formatBalance(amount);
+                const usdValue = balance[currency.toLowerCase() + '_value'] || balance.usd_value || '$0.00';
+                
+                tableHtml += `
+                    <tr>
+                        <td><span class="badge bg-info">${addr.id}</span></td>
+                        <td>
+                            <code class="text-truncate d-inline-block" style="max-width: 200px;">${addr.address}</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('${addr.address}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </td>
+                        <td><strong>${formattedAmount}</strong></td>
+                        <td><strong>${usdValue}</strong></td>
+                        <td><span class="badge bg-warning">Imported</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        tableHtml += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Show message if no addresses
+        if ((!balanceData.addresses || balanceData.addresses.length === 0) && 
+            (!balanceData.imported_addresses || balanceData.imported_addresses.length === 0)) {
+            tableHtml = `
+                <div class="text-center py-5">
+                    <i class="fas fa-info-circle fa-2x text-muted"></i>
+                    <p class="mt-2 text-muted">No addresses found in this wallet</p>
+                </div>
+            `;
+        }
+
+        document.getElementById('balanceTableContainer').innerHTML = tableHtml;
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showAlert('Address copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            showAlert('Failed to copy address', 'danger');
+        });
+    }
+</script>
+{% endblock %}

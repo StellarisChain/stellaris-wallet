@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Paper Wallet - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-print"></i> Paper Wallet Generator
+            </h1>
+        </div>
+    </div>
+
+    {% if current_wallet %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-pdf"></i> Generate Paper Wallet</h3>
+                </div>
+                <div class="card-body">
+                    <form id="paperWalletForm">
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Select Address *</label>
+                            <select class="form-select" id="address" required>
+                                <option value="">Select address...</option>
+                            </select>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="loadAddresses()">
+                                <i class="fas fa-sync-alt"></i> Load Addresses
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Wallet Password *</label>
+                            <input type="password" class="form-control" id="password" required
+                                   placeholder="Enter wallet password">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="format" class="form-label">Format</label>
+                            <select class="form-select" id="format">
+                                <option value="png" selected>PNG Image</option>
+                                <option value="pdf">PDF Document</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="totpCode" class="form-label">2FA Code (if enabled)</label>
+                            <input type="text" class="form-control" id="totpCode"
+                                   placeholder="Enter 6-digit 2FA code">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="generateBtn">
+                                <i class="fas fa-print"></i> Generate Paper Wallet
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Information Section -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> About Paper Wallets</h5>
+                <p>A paper wallet is a physical document that contains your cryptocurrency address and private key. It provides an offline storage method for your Stellaris coins.</p>
+                <ul class="mb-0">
+                    <li>Paper wallets are secure from online threats</li>
+                    <li>Keep multiple copies in safe locations</li>
+                    <li>Protect from water, fire, and physical damage</li>
+                    <li>Never share your private key with anyone</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Please load a wallet first to generate paper wallets.</p>
+                    <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Load Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_wallet %}
+        document.getElementById('paperWalletForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            generatePaperWallet();
+        });
+        {% endif %}
+    });
+
+    function loadAddresses() {
+        const password = document.getElementById('password').value;
+        
+        if (!password) {
+            showAlert('Please enter your wallet password to load addresses', 'warning');
+            return;
+        }
+
+        const params = new URLSearchParams({ password: password });
+
+        fetch(`/api/addresses?${params}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.data.entry_data) {
+                    populateAddressSelect(result.data.entry_data);
+                    showAlert('Addresses loaded successfully!', 'success');
+                } else {
+                    showAlert(result.error || 'Failed to load addresses', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error loading addresses', 'danger');
+            });
+    }
+
+    function populateAddressSelect(entryData) {
+        const select = document.getElementById('address');
+        select.innerHTML = '<option value="">Select address...</option>';
+
+        // Add generated addresses
+        if (entryData.entries) {
+            entryData.entries.forEach(entry => {
+                const option = document.createElement('option');
+                option.value = entry.address;
+                option.textContent = `${entry.id}: ${entry.address.substring(0, 20)}...`;
+                select.appendChild(option);
+            });
+        }
+
+        // Add imported addresses
+        if (entryData.imported_entries) {
+            entryData.imported_entries.forEach(entry => {
+                const option = document.createElement('option');
+                option.value = entry.address;
+                option.textContent = `${entry.id} (Imported): ${entry.address.substring(0, 20)}...`;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    function generatePaperWallet() {
+        const address = document.getElementById('address').value;
+        const password = document.getElementById('password').value;
+        const format = document.getElementById('format').value;
+        const totpCode = document.getElementById('totpCode').value;
+
+        // Validation
+        if (!address || !password) {
+            showAlert('Please fill in all required fields', 'danger');
+            return;
+        }
+
+        showLoading('generateBtn');
+
+        const data = {
+            address: address,
+            password: password,
+            format: format,
+            totp_code: totpCode || null
+        };
+
+        fetch('/api/generate-paper-wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading('generateBtn', '<i class="fas fa-print"></i> Generate Paper Wallet');
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                showAlert('Paper wallet has been saved to the wallets/paper_wallets directory', 'info');
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading('generateBtn', '<i class="fas fa-print"></i> Generate Paper Wallet');
+            console.error('Error:', error);
+            showAlert('An error occurred while generating paper wallet', 'danger');
+        });
+    }
+</script>
+{% endblock %}

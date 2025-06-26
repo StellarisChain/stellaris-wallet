@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h3 id="totalBalance">0.00</h3>
+                <p>Total Balance (STE)</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h3 id="totalAddresses">0</h3>
+                <p>Total Addresses</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h3 id="walletStatus">
+                    {% if current_wallet %}
+                        <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                    {% endif %}
+                </h3>
+                <p>Wallet Status</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('create_wallet_page') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus-circle"></i> Create Wallet
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-folder-open"></i> Load Wallet
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('send_page') }}" class="btn btn-success w-100" 
+                               {% if not current_wallet %}disabled{% endif %}>
+                                <i class="fas fa-paper-plane"></i> Send STE
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-info w-100" onclick="refreshDashboard()" id="refreshBtn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Overview -->
+    {% if current_wallet %}
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-line"></i> Wallet Overview</h3>
+                </div>
+                <div class="card-body">
+                    <div id="walletOverview">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                            <p class="mt-2 text-muted">Loading wallet data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Wallet Info</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>File:</strong> {{ current_wallet.split('/')[-1] }}</p>
+                    <p><strong>Path:</strong> <small>{{ current_wallet }}</small></p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-success">Loaded</span>
+                    </p>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('balance_page') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                        <a href="{{ url_for('generate_address_page') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-key"></i> Generate Address
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-wallet fa-4x text-muted mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Get started by creating a new wallet or loading an existing one.</p>
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('create_wallet_page') }}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-plus-circle"></i> Create New Wallet
+                                </a>
+                                <a href="{{ url_for('load_wallet_page') }}" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-folder-open"></i> Load Existing Wallet
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Refresh dashboard data
+    function refreshDashboard() {
+        showLoading('refreshBtn');
+        
+        {% if current_wallet %}
+        // Update wallet overview
+        loadWalletOverview();
+        {% endif %}
+        
+        setTimeout(() => {
+            hideLoading('refreshBtn', '<i class="fas fa-sync-alt"></i> Refresh');
+            showAlert('Dashboard refreshed!', 'success');
+        }, 1000);
+    }
+
+    {% if current_wallet %}
+    let walletEncrypted = false;
+
+    // Load wallet overview
+    function loadWalletOverview() {
+        // First check wallet status
+        fetch('/api/wallet-status')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    walletEncrypted = result.encrypted;
+                    // Now load balance and addresses
+                    loadBalance();
+                    loadAddresses();
+                }
+            })
+            .catch(error => {
+                console.error('Error checking wallet status:', error);
+                loadAddresses(); // Try to load addresses anyway
+            });
+    }
+
+    function formatBalance(balanceStr) {
+        // Extract the numeric part and unit from strings like "54000.000000 STE" or "54000.000000"
+        if (typeof balanceStr === 'string') {
+            const parts = balanceStr.trim().split(' ');
+            const numericPart = parts[0];
+            const unit = parts.length > 1 ? ' ' + parts.slice(1).join(' ') : '';
+            
+            // Convert to number and check if it has significant decimal places
+            const num = parseFloat(numericPart);
+            if (isNaN(num)) return balanceStr;
+            
+            // Check if the decimal part is all zeros
+            const decimalPart = numericPart.split('.')[1];
+            if (decimalPart && decimalPart.replace(/0/g, '') === '') {
+                // All decimal places are zeros, show as integer
+                return Math.floor(num).toString() + unit;
+            } else {
+                // Has significant decimal places, keep original formatting
+                return balanceStr;
+            }
+        }
+        return balanceStr;
+    }
+
+    function loadBalance() {
+        const params = new URLSearchParams({ currency: 'USD' });
+        // For unencrypted wallets, don't send password
+        if (!walletEncrypted) {
+            params.set('password', '');
+        }
+
+        fetch(`/api/balance?${params}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const balanceData = result.data.balance_data || result.data;
+                    // Update balance display with formatting
+                    const totalBalance = balanceData.total_balance || '0 STE';
+                    const formattedBalance = formatBalance(totalBalance).replace(' STE', '');
+                    document.getElementById('totalBalance').textContent = formattedBalance;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading balance:', error);
+            });
+    }
+
+    function loadAddresses() {
+        const params = new URLSearchParams();
+        // For unencrypted wallets, don't send password
+        if (!walletEncrypted) {
+            params.set('password', '');
+        }
+
+        fetch(`/api/addresses?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.entry_data) {
+                    const entryData = data.data.entry_data;
+                    let totalAddresses = 0;
+                    let overviewHtml = '';
+
+                    // Count addresses
+                    if (entryData.entries) {
+                        totalAddresses += entryData.entries.length;
+                        overviewHtml += `<h5>Generated Addresses (${entryData.entries.length})</h5>`;
+                    }
+                    
+                    if (entryData.imported_entries) {
+                        totalAddresses += entryData.imported_entries.length;
+                        overviewHtml += `<h5>Imported Addresses (${entryData.imported_entries.length})</h5>`;
+                    }
+
+                    if (totalAddresses === 0) {
+                        overviewHtml = '<p class="text-muted">No addresses found. Generate some addresses to get started.</p>';
+                    }
+
+                    document.getElementById('totalAddresses').textContent = totalAddresses;
+                    document.getElementById('walletOverview').innerHTML = overviewHtml;
+                } else {
+                    document.getElementById('walletOverview').innerHTML = 
+                        '<p class="text-danger">Error loading wallet data. You may need to enter your password.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('walletOverview').innerHTML = 
+                    '<p class="text-danger">Error loading wallet data.</p>';
+            });
+    }
+
+    // Load initial data
+    document.addEventListener('DOMContentLoaded', function() {
+        loadWalletOverview();
+    });
+    {% endif %}
+</script>
+{% endblock %}

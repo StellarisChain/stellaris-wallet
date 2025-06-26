@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Address - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-key"></i> Generate Address
+            </h1>
+        </div>
+    </div>
+
+    {% if current_wallet %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Generate New Address</h3>
+                </div>
+                <div class="card-body">
+                    <form id="generateForm">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Wallet Password *</label>
+                            <input type="password" class="form-control" id="password" required
+                                   placeholder="Enter wallet password">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Number of Addresses</label>
+                            <input type="number" class="form-control" id="amount" 
+                                   min="1" max="10" value="1">
+                            <div class="form-text">Maximum 10 addresses at once</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="totpCode" class="form-label">2FA Code (if enabled)</label>
+                            <input type="text" class="form-control" id="totpCode"
+                                   placeholder="Enter 6-digit 2FA code">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="generateBtn">
+                                <i class="fas fa-key"></i> Generate Address
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Please load a wallet first to generate addresses.</p>
+                    <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Load Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_wallet %}
+        document.getElementById('generateForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            generateAddress();
+        });
+        {% endif %}
+    });
+
+    function generateAddress() {
+        const password = document.getElementById('password').value;
+        const amount = document.getElementById('amount').value;
+        const totpCode = document.getElementById('totpCode').value;
+
+        if (!password) {
+            showAlert('Please enter your wallet password', 'danger');
+            return;
+        }
+
+        showLoading('generateBtn');
+
+        const data = {
+            password: password,
+            amount: parseInt(amount),
+            totp_code: totpCode || null
+        };
+
+        fetch('/api/generate-address', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading('generateBtn', '<i class="fas fa-key"></i> Generate Address');
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                document.getElementById('generateForm').reset();
+                
+                setTimeout(() => {
+                    window.location.href = '/receive';
+                }, 2000);
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading('generateBtn', '<i class="fas fa-key"></i> Generate Address');
+            console.error('Error:', error);
+            showAlert('An error occurred while generating address', 'danger');
+        });
+    }
+</script>
+{% endblock %}

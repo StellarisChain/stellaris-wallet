@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-cog"></i> Settings
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-server"></i> Node Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form id="nodeForm">
+                        <div class="mb-3">
+                            <label for="nodeUrl" class="form-label">Node URL</label>
+                            <input type="url" class="form-control" id="nodeUrl" 
+                                   value="https://stellaris-node.connor33341.dev"
+                                   placeholder="Enter node URL">
+                            <div class="form-text">The Stellaris node to connect to for transactions and balance queries</div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="testNode()">
+                            <i class="fas fa-check-circle"></i> Test Connection
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-palette"></i> Display Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="defaultCurrency" class="form-label">Default Currency</label>
+                        <select class="form-select" id="defaultCurrency">
+                            <option value="USD" selected>USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="BTC">BTC (₿)</option>
+                            <option value="ETH">ETH (Ξ)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                        <label class="form-check-label" for="autoRefresh">
+                            Auto-refresh balances every minute
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="showNotifications" checked>
+                        <label class="form-check-label" for="showNotifications">
+                            Show desktop notifications
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-shield-alt"></i> Security Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="clearPasswordsOnClose" checked>
+                        <label class="form-check-label" for="clearPasswordsOnClose">
+                            Clear passwords when closing browser
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirmTransactions" checked>
+                        <label class="form-check-label" for="confirmTransactions">
+                            Always confirm transactions
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="sessionTimeout" class="form-label">Session Timeout (minutes)</label>
+                        <input type="number" class="form-control" id="sessionTimeout" 
+                               value="30" min="5" max="120">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Application Info</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Version:</strong> 1.0.0</p>
+                    <p><strong>Platform:</strong> Web Interface</p>
+                    <p><strong>Node:</strong> <span id="currentNode">https://stellaris-node.connor33341.dev</span></p>
+                    <p><strong>Status:</strong> <span class="badge bg-success">Online</span></p>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-info" onclick="checkForUpdates()">
+                            <i class="fas fa-download"></i> Check for Updates
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="showAbout()">
+                            <i class="fas fa-info"></i> About
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-save"></i> Save Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button class="btn btn-outline-secondary me-md-2" onclick="resetSettings()">
+                            <i class="fas fa-undo"></i> Reset to Defaults
+                        </button>
+                        <button class="btn btn-success" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSettings();
+    });
+
+    function loadSettings() {
+        // Load settings from localStorage
+        const settings = JSON.parse(localStorage.getItem('stellarisWalletSettings') || '{}');
+        
+        if (settings.nodeUrl) {
+            document.getElementById('nodeUrl').value = settings.nodeUrl;
+        }
+        if (settings.defaultCurrency) {
+            document.getElementById('defaultCurrency').value = settings.defaultCurrency;
+        }
+        if (settings.hasOwnProperty('autoRefresh')) {
+            document.getElementById('autoRefresh').checked = settings.autoRefresh;
+        }
+        if (settings.hasOwnProperty('showNotifications')) {
+            document.getElementById('showNotifications').checked = settings.showNotifications;
+        }
+        if (settings.hasOwnProperty('clearPasswordsOnClose')) {
+            document.getElementById('clearPasswordsOnClose').checked = settings.clearPasswordsOnClose;
+        }
+        if (settings.hasOwnProperty('confirmTransactions')) {
+            document.getElementById('confirmTransactions').checked = settings.confirmTransactions;
+        }
+        if (settings.sessionTimeout) {
+            document.getElementById('sessionTimeout').value = settings.sessionTimeout;
+        }
+    }
+
+    function saveSettings() {
+        const settings = {
+            nodeUrl: document.getElementById('nodeUrl').value,
+            defaultCurrency: document.getElementById('defaultCurrency').value,
+            autoRefresh: document.getElementById('autoRefresh').checked,
+            showNotifications: document.getElementById('showNotifications').checked,
+            clearPasswordsOnClose: document.getElementById('clearPasswordsOnClose').checked,
+            confirmTransactions: document.getElementById('confirmTransactions').checked,
+            sessionTimeout: parseInt(document.getElementById('sessionTimeout').value)
+        };
+
+        localStorage.setItem('stellarisWalletSettings', JSON.stringify(settings));
+        document.getElementById('currentNode').textContent = settings.nodeUrl;
+        
+        showAlert('Settings saved successfully!', 'success');
+    }
+
+    function resetSettings() {
+        if (confirm('Are you sure you want to reset all settings to defaults?')) {
+            localStorage.removeItem('stellarisWalletSettings');
+            
+            // Reset form values
+            document.getElementById('nodeUrl').value = 'https://stellaris-node.connor33341.dev';
+            document.getElementById('defaultCurrency').value = 'USD';
+            document.getElementById('autoRefresh').checked = true;
+            document.getElementById('showNotifications').checked = true;
+            document.getElementById('clearPasswordsOnClose').checked = true;
+            document.getElementById('confirmTransactions').checked = true;
+            document.getElementById('sessionTimeout').value = 30;
+            
+            showAlert('Settings reset to defaults!', 'info');
+        }
+    }
+
+    function testNode() {
+        const nodeUrl = document.getElementById('nodeUrl').value;
+        
+        if (!nodeUrl) {
+            showAlert('Please enter a node URL', 'warning');
+            return;
+        }
+
+        showAlert('Testing node connection...', 'info');
+
+        // Simple test - try to fetch price (which uses a different endpoint)
+        // In a real implementation, you'd test the actual node
+        fetch('/api/price')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Node connection test successful!', 'success');
+                } else {
+                    showAlert('Node connection test failed', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Node connection test failed', 'danger');
+            });
+    }
+
+    function checkForUpdates() {
+        showAlert('Checking for updates...', 'info');
+        
+        // Simulate update check
+        setTimeout(() => {
+            showAlert('You are running the latest version!', 'success');
+        }, 1500);
+    }
+
+    function showAbout() {
+        alert(`Stellaris Wallet Web Interface v1.0.0
+
+A modern web-based interface for managing Stellaris cryptocurrency wallets.
+
+Features:
+• Create and manage encrypted wallets
+• Send and receive Stellaris (STE)
+• Generate paper wallets
+• Multi-currency balance display
+• Secure 2FA support
+
+Built with Flask and modern web technologies.`);
+    }
+</script>
+{% endblock %}

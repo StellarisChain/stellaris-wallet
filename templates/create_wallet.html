@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Create Wallet - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-plus-circle"></i> Create New Wallet
+            </h1>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-wallet"></i> Wallet Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form id="createWalletForm">
+                        <div class="mb-3">
+                            <label for="walletName" class="form-label">Wallet Name *</label>
+                            <input type="text" class="form-control" id="walletName" required
+                                   placeholder="Enter wallet name (e.g., my_wallet)">
+                            <div class="form-text">The .json extension will be added automatically</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password"
+                                   placeholder="Enter a strong password">
+                            <div class="form-text">Required for encrypted wallets</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword"
+                                   placeholder="Confirm your password">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="encrypt" checked>
+                                    <label class="form-check-label" for="encrypt">
+                                        <strong>Encrypt Wallet</strong>
+                                    </label>
+                                    <div class="form-text">Recommended for security</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="deterministic" checked>
+                                    <label class="form-check-label" for="deterministic">
+                                        <strong>Deterministic</strong>
+                                    </label>
+                                    <div class="form-text">Generate addresses from seed</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="use2FA">
+                                <label class="form-check-label" for="use2FA">
+                                    <strong>Enable 2-Factor Authentication</strong>
+                                </label>
+                                <div class="form-text">Requires encrypted wallet</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="mnemonic" class="form-label">Mnemonic Phrase (Optional)</label>
+                            <textarea class="form-control" id="mnemonic" rows="3"
+                                     placeholder="Enter existing 12-word mnemonic phrase (optional)"></textarea>
+                            <div class="form-text">Leave empty to generate a new one</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="createBtn">
+                                <i class="fas fa-plus-circle"></i> Create Wallet
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Notice -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> Security Notice</h5>
+                <ul class="mb-0">
+                    <li>Always use a strong, unique password for encrypted wallets</li>
+                    <li>Keep your mnemonic phrase safe and never share it</li>
+                    <li>Consider enabling 2FA for additional security</li>
+                    <li>Backup your wallet file in a secure location</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const encryptCheckbox = document.getElementById('encrypt');
+        const use2FACheckbox = document.getElementById('use2FA');
+        const passwordField = document.getElementById('password');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+
+        // Handle encrypt checkbox change
+        encryptCheckbox.addEventListener('change', function() {
+            use2FACheckbox.disabled = !this.checked;
+            if (!this.checked) {
+                use2FACheckbox.checked = false;
+            }
+            
+            passwordField.required = this.checked;
+            confirmPasswordField.required = this.checked;
+        });
+
+        // Form submission
+        document.getElementById('createWalletForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            createWallet();
+        });
+    });
+
+    function createWallet() {
+        const walletName = document.getElementById('walletName').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const encrypt = document.getElementById('encrypt').checked;
+        const deterministic = document.getElementById('deterministic').checked;
+        const use2FA = document.getElementById('use2FA').checked;
+        const mnemonic = document.getElementById('mnemonic').value.trim();
+
+        // Validation
+        if (!walletName) {
+            showAlert('Please enter a wallet name', 'danger');
+            return;
+        }
+
+        if (encrypt && !password) {
+            showAlert('Password is required for encrypted wallets', 'danger');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showAlert('Passwords do not match', 'danger');
+            return;
+        }
+
+        // Show loading
+        showLoading('createBtn');
+
+        // Prepare data
+        const data = {
+            wallet_name: walletName,
+            password: password,
+            confirm_password: confirmPassword,
+            encrypt: encrypt,
+            deterministic: deterministic,
+            use2FA: use2FA,
+            mnemonic: mnemonic || null
+        };
+
+        // Send request
+        fetch('/api/create-wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading('createBtn', '<i class="fas fa-plus-circle"></i> Create Wallet');
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading('createBtn', '<i class="fas fa-plus-circle"></i> Create Wallet');
+            console.error('Error:', error);
+            showAlert('An error occurred while creating the wallet', 'danger');
+        });
+    }
+</script>
+{% endblock %}

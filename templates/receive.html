@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Receive - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-qrcode"></i> Receive Stellaris
+            </h1>
+        </div>
+    </div>
+
+    {% if current_wallet %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Your Addresses</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Wallet Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password"
+                                   placeholder="Enter wallet password">
+                            <button class="btn btn-primary" onclick="loadAddresses()">
+                                <i class="fas fa-sync-alt"></i> Load Addresses
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="addressesContainer">
+                        <div class="text-center py-5">
+                            <i class="fas fa-info-circle fa-2x text-muted"></i>
+                            <p class="mt-2 text-muted">Enter your password and click "Load Addresses" to view your receiving addresses</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-muted">No Wallet Loaded</h3>
+                    <p class="text-muted mb-4">Please load a wallet first to view receiving addresses.</p>
+                    <a href="{{ url_for('load_wallet_page') }}" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Load Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function loadAddresses() {
+        const password = document.getElementById('password').value;
+        
+        if (!password) {
+            showAlert('Please enter your wallet password', 'warning');
+            return;
+        }
+
+        document.getElementById('addressesContainer').innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <p class="mt-2 text-muted">Loading addresses...</p>
+            </div>
+        `;
+
+        const params = new URLSearchParams({ password: password });
+
+        fetch(`/api/addresses?${params}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.data.entry_data) {
+                    displayAddresses(result.data.entry_data);
+                    showAlert('Addresses loaded successfully!', 'success');
+                } else {
+                    showAlert(result.error || 'Failed to load addresses', 'danger');
+                    document.getElementById('addressesContainer').innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            <p class="mt-2 text-danger">Error loading addresses</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error loading addresses', 'danger');
+                document.getElementById('addressesContainer').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                        <p class="mt-2 text-danger">Network error occurred</p>
+                    </div>
+                `;
+            });
+    }
+
+    function displayAddresses(entryData) {
+        let html = '';
+
+        // Display generated addresses
+        if (entryData.entries && entryData.entries.length > 0) {
+            html += `
+                <h5 class="mb-3"><i class="fas fa-key text-primary"></i> Generated Addresses</h5>
+                <div class="row">
+            `;
+            
+            entryData.entries.forEach(entry => {
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header">
+                                <strong>Address #${entry.id}</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small class="text-muted">Address:</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" value="${entry.address}" readonly>
+                                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('${entry.address}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button class="btn btn-sm btn-primary" onclick="generateQR('${entry.address}')">
+                                        <i class="fas fa-qrcode"></i> Show QR Code
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+        }
+
+        // Display imported addresses
+        if (entryData.imported_entries && entryData.imported_entries.length > 0) {
+            html += `
+                <h5 class="mb-3 mt-4"><i class="fas fa-download text-info"></i> Imported Addresses</h5>
+                <div class="row">
+            `;
+            
+            entryData.imported_entries.forEach(entry => {
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-info">
+                            <div class="card-header">
+                                <strong>Imported #${entry.id}</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <small class="text-muted">Address:</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" value="${entry.address}" readonly>
+                                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('${entry.address}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="d-grid">
+                                    <button class="btn btn-sm btn-info" onclick="generateQR('${entry.address}')">
+                                        <i class="fas fa-qrcode"></i> Show QR Code
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+        }
+
+        if (html === '') {
+            html = `
+                <div class="text-center py-5">
+                    <i class="fas fa-info-circle fa-2x text-muted"></i>
+                    <p class="mt-2 text-muted">No addresses found. Generate some addresses first.</p>
+                    <a href="/generate-address" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Generate Address
+                    </a>
+                </div>
+            `;
+        }
+
+        document.getElementById('addressesContainer').innerHTML = html;
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showAlert('Address copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            showAlert('Failed to copy address', 'danger');
+        });
+    }
+
+    function generateQR(address) {
+        // For now, just show the address in an alert
+        // In a real implementation, you could generate a QR code
+        alert(`QR Code for address: ${address}\n\nYou can use online QR code generators to create a QR code for this address.`);
+    }
+</script>
+{% endblock %}

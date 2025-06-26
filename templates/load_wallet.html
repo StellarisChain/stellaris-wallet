@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Load Wallet - Stellaris Wallet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4" style="color: white; font-weight: 700;">
+                <i class="fas fa-folder-open"></i> Load Wallet
+            </h1>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-upload"></i> Select Wallet File</h3>
+                </div>
+                <div class="card-body">
+                    <form id="loadWalletForm">
+                        <div class="mb-3">
+                            <label for="walletPath" class="form-label">Wallet File Path *</label>
+                            <input type="text" class="form-control" id="walletPath" required
+                                   placeholder="e.g., wallets/my_wallet.json">
+                            <div class="form-text">Enter the path to your wallet JSON file</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loadBtn">
+                                <i class="fas fa-folder-open"></i> Load Wallet
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Load Section -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-clock"></i> Quick Load</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Common wallet locations:</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="loadQuickPath('wallets/wallet.json')">
+                            <i class="fas fa-file"></i> wallets/wallet.json
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="loadQuickPath('wallets/wallet2.json')">
+                            <i class="fas fa-file"></i> wallets/wallet2.json
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> Loading Wallets</h5>
+                <ul class="mb-0">
+                    <li>Wallet files are typically stored in the <code>wallets/</code> directory</li>
+                    <li>Encrypted wallets will require a password to access</li>
+                    <li>Make sure the wallet file exists and is accessible</li>
+                    <li>The wallet file should be a valid JSON format</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('loadWalletForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadWallet();
+        });
+    });
+
+    function loadQuickPath(path) {
+        document.getElementById('walletPath').value = path;
+        loadWallet();
+    }
+
+    function loadWallet() {
+        const walletPath = document.getElementById('walletPath').value.trim();
+
+        if (!walletPath) {
+            showAlert('Please enter a wallet file path', 'danger');
+            return;
+        }
+
+        showLoading('loadBtn');
+
+        const data = {
+            wallet_path: walletPath
+        };
+
+        fetch('/api/load-wallet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            hideLoading('loadBtn', '<i class="fas fa-folder-open"></i> Load Wallet');
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading('loadBtn', '<i class="fas fa-folder-open"></i> Load Wallet');
+            console.error('Error:', error);
+            showAlert('An error occurred while loading the wallet', 'danger');
+        });
+    }
+</script>
+{% endblock %}
