@@ -13,3 +13,6 @@ reportlab==4.0.8
 PyQt6>=6.4.0
 werkzeug
 flask
+ttkbootstrap
+tkinter-tooltip
+continuous-threading==2.0.6
