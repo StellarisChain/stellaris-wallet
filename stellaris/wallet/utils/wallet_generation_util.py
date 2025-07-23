@@ -175,7 +175,7 @@ def bytes_to_point(point_bytes: bytes) -> Point:
     elif len(point_bytes) == 33:
         specifier = point_bytes[0]  # First byte is the specifier for odd/even y-coordinate
         x = int.from_bytes(point_bytes[1:], ENDIAN)  # Extract x from the bytes
-        result = Point(x, x_to_y(x, specifier == 43))  # Compute y and return as Point object
+        result = Point(x, x_to_y(x, specifier == 43), CURVE)  # Compute y and return as Point object
         data_manipulation_util.DataManipulation.secure_delete([var for var in locals().values() if var is not None and var is not result])
         return result
     else:
