@@ -26,7 +26,7 @@ _print = print  # Saving the original print function for later use
 
 # Constants
 ENDIAN = 'little'  # Defining byte order as little-endian
-CURVE = curve.P256  # Defining the elliptic curve for ECDSA
+CURVE = curve.secp256k1  # Defining the elliptic curve for ECDSA
 SMALLEST = 1000000
 
 # Logging Configuration
