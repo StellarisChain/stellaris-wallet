@@ -330,7 +330,7 @@ def private_to_public_key_fastecdsa(private_key_hex):
     private_key_int = int(private_key_hex, 16)
     
     # Use fastecdsa's keys.get_public_key function to calculate the public point corresponding to the private key
-    public_point = keys.get_public_key(private_key_int, curve.P256)
+    public_point = keys.get_public_key(private_key_int, CURVE)
     
     # Determine the prefix for the compressed public key ('02' for even y-coordinates and '03' for odd)
     prefix = '02' if public_point.y % 2 == 0 else '03'
